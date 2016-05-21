@@ -3,6 +3,7 @@
 namespace spec\AppBundle\Game;
 
 use AppBundle\Entity\Game;
+use AppBundle\Exception\GameException;
 use AppBundle\Exception\GameManagerException;
 use Doctrine\ORM\EntityManager;
 use PhpSpec\Exception\Example\FailureException;
@@ -15,6 +16,10 @@ use Symfony\Component\HttpFoundation\Session\Session;
 class GameManagerSpec extends ObjectBehavior
 {
     const UUID_LENGTH = 36;
+
+    const UNCORRECT_GAME_STATUS = -1;
+
+    const GAME_ID_SESSION_KEY = 'gameId';
 
     /** @var Prophet */
     private $prophet;
@@ -42,45 +47,78 @@ class GameManagerSpec extends ObjectBehavior
         $gameId = $this->newGame();
         $gameId->shouldBeAUuid();
 
-        $session->set(sprintf("game_%s", $gameId->getWrappedObject()), Argument::Any())->shouldHaveBeenCalled();
+        $session->set(self::GAME_ID_SESSION_KEY, $gameId->getWrappedObject())->shouldHaveBeenCalled();
         $entityManager->persist(Argument::Type(Game::class))->shouldHaveBeenCalled();
         $entityManager->flush()->shouldHaveBeenCalled();
     }
 
-    function it_ends_a_game(EntityManager $entityManager)
+    function it_creates_a_game_and_save_previous_one_with_failure_status(Session $session, EntityManager $entityManager)
     {
-        $gameId = Uuid::uuid4()->toString();
+        $previousGameId = Uuid::uuid4()->toString();
+        $previousGame = $this->prophet->prophesize('AppBundle\Entity\Game');
+
+        $session->get(self::GAME_ID_SESSION_KEY)->shouldBeCalled();
+        $session->get(self::GAME_ID_SESSION_KEY)->willReturn($previousGameId);
+
+        $entityManager->getRepository('AppBundle:Game')->willReturn($this->gameRepo);
+        $this->gameRepo->findOneBy(['id' => $previousGameId])->willReturn($previousGame);
+
+        $previousGame->getStatus()->willReturn(Game::STATUS_STARTED);
+        $previousGame->end(Game::STATUS_FAILED)->shouldBeCalled();
+
+        $entityManager->flush($previousGame)->shouldBeCalled();
+
+        $session->set(self::GAME_ID_SESSION_KEY, Argument::any())->shouldBeCalled();
+        $entityManager->persist(Argument::Type(Game::class))->shouldBeCalled();
+        $entityManager->flush()->shouldBeCalled();
+
+        $this->newGame();
+    }
+
+    function it_ends_a_game(Session $session, EntityManager $entityManager)
+    {
+        $gameId = $this->newGame()->getWrappedObject();
+
+        $session->set(self::GAME_ID_SESSION_KEY, $gameId)->shouldBeCalled();
+        $session->get(self::GAME_ID_SESSION_KEY)->willReturn($gameId);
 
         $this->makeGetGameExpectations($gameId, $entityManager);
 
         $status = Game::STATUS_CLEARED;
-        $this->game->end($status)->willReturn($this->getDateInterval());
         $this->game->end($status)->shouldBeCalled();
+        $this->game->end($status)->willReturn($this->getDateInterval());
 
         $entityManager->flush($this->game)->shouldBeCalled();
+        $session->clear(self::GAME_ID_SESSION_KEY)->shouldBeCalled();
 
-        $this->endGame($gameId, $status)->shouldReturnAnInstanceOf('DateInterval');
+        $this->endGame($status)->shouldReturnAnInstanceOf('DateInterval');
     }
 
-    function it_throws_an_exception_if_game_is_ended_with_uncorrect_status(EntityManager $entityManager)
+    function it_throws_an_exception_if_game_cannot_be_ended(Session $session, EntityManager $entityManager)
     {
-        $gameId = Uuid::uuid4()->toString();
-        $this->makeGetGameExpectations($gameId, $entityManager);
+        $gameId = $this->newGame()->getWrappedObject();
 
-        $this->shouldThrow(GameManagerException::class)->duringEndGame($gameId, -1);
-    }
-
-    function it_throws_an_exception_if_try_to_end_a_game_that_cannot_be_ended(EntityManager $entityManager)
-    {
-        $gameId = Uuid::uuid4()->toString();
+        $session->set(self::GAME_ID_SESSION_KEY, $gameId)->shouldBeCalled();
+        $session->get(self::GAME_ID_SESSION_KEY)->willReturn($gameId);
 
         $this->makeGetGameExpectations($gameId, $entityManager);
 
-        $status = Game::STATUS_FAILED;
-        $this->game->end($status)->shouldBeCalled();
-        $this->game->canBeEnded()->willReturn(false);
+        $this->game->end(self::UNCORRECT_GAME_STATUS)->willThrow(new GameException());
 
-        $this->shouldThrow(GameManagerException::class)->duringEndGame($gameId, $status);
+        $this->shouldThrow(GameManagerException::class)->duringEndGame(self::UNCORRECT_GAME_STATUS);
+    }
+
+    function it_throws_an_exception_if_game_cannot_be_found_onto_db_during_end(Session $session, EntityManager $entityManager)
+    {
+        $gameId = $this->newGame()->getWrappedObject();
+
+        $session->set(self::GAME_ID_SESSION_KEY, $gameId)->shouldBeCalled();
+        $session->get(self::GAME_ID_SESSION_KEY)->willReturn($gameId);
+
+        $entityManager->getRepository('AppBundle:Game')->willReturn($this->gameRepo);
+        $this->gameRepo->findOneBy(['id' => $gameId])->willReturn(null);
+
+        $this->shouldThrow(GameManagerException::class)->duringEndGame(self::UNCORRECT_GAME_STATUS);
     }
 
     public function getMatchers()
@@ -122,6 +160,6 @@ class GameManagerSpec extends ObjectBehavior
     private function makeGetGameExpectations($gameId, EntityManager $entityManager)
     {
         $entityManager->getRepository('AppBundle:Game')->willReturn($this->gameRepo);
-        $this->gameRepo->findBy(['id' => $gameId])->willReturn($this->game);
+        $this->gameRepo->findOneBy(['id' => $gameId])->willReturn($this->game);
     }
 }

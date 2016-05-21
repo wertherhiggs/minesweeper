@@ -10,14 +10,13 @@ use Symfony\Component\HttpFoundation\Session\Session;
 
 class GameManager
 {
+    const GAME_ID_SESSION_KEY = 'gameId';
+
     /** @var Session */
     private $session;
 
     /** @var EntityManager  */
     private $entityManager;
-
-    /** @var Game */
-    private $game;
 
     /**
      * @param Session $session
@@ -27,7 +26,6 @@ class GameManager
     {
         $this->session = $session;
         $this->entityManager = $entityManager;
-        $this->game = null;
     }
 
     /**
@@ -35,6 +33,8 @@ class GameManager
      */
     public function newGame()
     {
+        $this->handlePreviousGame();
+
         $game = new Game();
         $gameId = $game->getId();
 
@@ -49,7 +49,20 @@ class GameManager
      */
     protected function setGameUuidInSession($gameId)
     {
-        $this->session->set(sprintf("game_%s", $gameId), true);
+        $this->session->set(self::GAME_ID_SESSION_KEY, $gameId);
+    }
+
+    /**
+     * @return mixed
+     */
+    protected function getGameUuidFromSession()
+    {
+        return $this->session->get(self::GAME_ID_SESSION_KEY);
+    }
+
+    protected function clearGameFromSession()
+    {
+        $this->session->clear(self::GAME_ID_SESSION_KEY);
     }
 
     /**
@@ -62,25 +75,29 @@ class GameManager
     }
 
     /**
-     * @param $gameId
      * @param $status
      *
      * @return \DateInterval
      *
      * @throws \Exception
      */
-    public function endGame($gameId, $status)
+    public function endGame($status)
     {
-        try {
-            $this->session->get(sprintf("game_%s", $gameId));
-            $game = $this->getGameFromId($gameId);
+        $gameId = $this->session->get(self::GAME_ID_SESSION_KEY);
+        $game = $this->getGameFromId($gameId);
 
+        if (!$game instanceof Game) {
+            throw new GameManagerException(sprintf("Game %s was not saved into db", $gameId));
+        }
+
+        try {
             $totalGamingTime = $game->end($status);
             $this->entityManager->flush($game);
+            $this->clearGameFromSession();
 
             return $totalGamingTime;
         } catch (GameException $e) {
-            throw new GameManagerException("Internal error! something went wrong!");
+            throw new GameManagerException($e->getMessage());
         }
     }
 
@@ -91,7 +108,7 @@ class GameManager
      */
     protected function getGameFromId($gameId)
     {
-        return $this->getGameRepository()->findBy([
+        return $this->getGameRepository()->findOneBy([
             'id' => $gameId
         ]);
     }
@@ -102,6 +119,22 @@ class GameManager
     protected function getGameRepository()
     {
         return $this->entityManager->getRepository('AppBundle:Game');
+    }
+
+    protected function handlePreviousGame()
+    {
+        $gameId = $this->getGameUuidFromSession();
+
+        if (!$gameId) {
+            return;
+        }
+
+        $previousGame = $this->getGameFromId($gameId);
+        if ($previousGame->getStatus() == Game::STATUS_STARTED) {
+            $previousGame->end(Game::STATUS_FAILED);
+        }
+
+        $this->entityManager->flush($previousGame);
     }
 
 }
