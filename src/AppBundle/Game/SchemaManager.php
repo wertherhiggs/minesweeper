@@ -25,8 +25,8 @@ class SchemaManager
         $schema = [];
         for ($rowNumber = 0; $rowNumber < $rows; $rowNumber++) {
             for ($columnNumber = 0; $columnNumber < $columns; $columnNumber++) {
-                $mine = $this->getBoxValue($rowNumber, $columnNumber);
-                $schema[$rowNumber][$columnNumber] = $mine;
+                $box = $this->getBox($rowNumber, $columnNumber);
+                $schema[$rowNumber][$columnNumber] = $box;
             }
         }
 
@@ -62,14 +62,14 @@ class SchemaManager
      * @param integer $rowNumber
      * @param integer $columnNumber
      *
-     * @return int|string
+     * @return BoxInterface
      */
-    protected function getBoxValue($rowNumber, $columnNumber)
+    protected function getBox($rowNumber, $columnNumber)
     {
         // @todo: throw an exception if schema is not initialized?
 
         if ($this->checkIfGotMine($rowNumber, $columnNumber)) {
-            $mine = 'X';
+            $box = new MinedBox();
         } else {
             $mine = 0;
             if ($this->checktTopLeftBox($rowNumber, $columnNumber)) {
@@ -96,9 +96,11 @@ class SchemaManager
             if ($this->checkBottomRightBox($rowNumber, $columnNumber)) {
                 $mine++;
             }
+
+            $box = new Box($mine);
         }
 
-        return $mine;
+        return $box;
     }
 
     /**
