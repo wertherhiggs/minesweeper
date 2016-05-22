@@ -4,12 +4,9 @@ namespace AppBundle\Game;
 
 use AppBundle\Exception\OpeningMineBoxException;
 
-class Box
+class Box implements BoxInterface
 {
     const MINED_BOX_VALUE = -1;
-
-    /** @var bool */
-    private $gotMine;
 
     /** @var bool */
     private $isOpen;
@@ -18,18 +15,11 @@ class Box
     private $value;
 
     /**
-     * @param $gotMine
-     * @param $value
+     * @param integer $value
      */
-    public function __construct($gotMine, $value)
+    public function __construct($value)
     {
-        $this->gotMine = $gotMine;
         $this->isOpen = false;
-
-        if ($gotMine) {
-            $value = self::MINED_BOX_VALUE;
-        }
-
         $this->value = $value;
     }
 
@@ -38,7 +28,7 @@ class Box
      */
     public function isMine()
     {
-        return $this->gotMine;
+        return false;
     }
 
     /**
@@ -59,15 +49,9 @@ class Box
 
     /**
      * @return bool
-     *
-     * @throws \Exception
      */
     public function open()
     {
-        if ($this->isMine()) {
-            throw new OpeningMineBoxException("You're opening a mine box. Your game should be over");
-        }
-
         $this->isOpen = true;
 
         return true;
