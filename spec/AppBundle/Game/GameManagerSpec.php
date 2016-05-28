@@ -3,8 +3,12 @@
 namespace spec\AppBundle\Game;
 
 use AppBundle\Entity\Game;
-use AppBundle\Exception\GameException;
-use AppBundle\Exception\GameManagerException;
+use AppBundle\Exception\OpeningMineBoxException;
+use AppBundle\Game\Box;
+use AppBundle\Game\BoxInterface;
+use AppBundle\Game\GameManager;
+use AppBundle\Game\MinedBox;
+use AppBundle\Game\SchemaManager;
 use Doctrine\ORM\EntityManager;
 use PhpSpec\Exception\Example\FailureException;
 use PhpSpec\ObjectBehavior;
@@ -21,6 +25,12 @@ class GameManagerSpec extends ObjectBehavior
 
     const GAME_ID_SESSION_KEY = 'gameId';
 
+    const FAKE_SCHEMA_ROWS = 8;
+
+    const FAKE_SCHEMA_COLUMNS = 8;
+
+    const FAKE_SCHEMA_MINES_NUMBER = 10;
+
     /** @var Prophet */
     private $prophet;
 
@@ -28,9 +38,9 @@ class GameManagerSpec extends ObjectBehavior
 
     private $gameRepo;
 
-    function let(Session $session, EntityManager $entityManager)
+    function let(Session $session, EntityManager $entityManager, SchemaManager $schemaManager)
     {
-        $this->beConstructedWith($session, $entityManager);
+        $this->beConstructedWith($session, $entityManager, $schemaManager);
 
         $this->prophet = new Prophet;
         $this->game = $this->prophet->prophesize('AppBundle\Entity\Game');
@@ -42,8 +52,11 @@ class GameManagerSpec extends ObjectBehavior
         $this->shouldHaveType('AppBundle\Game\GameManager');
     }
 
-    function it_creates_a_game(Session $session, EntityManager $entityManager)
+    function it_creates_a_game(Session $session, EntityManager $entityManager, SchemaManager $schemaManager)
     {
+        $schemaDouble = $this->createASchemaDouble();
+        $schemaManager->createSchema(Argument::any(), Argument::any(), Argument::any())->willReturn($schemaDouble);
+
         $gameId = $this->newGame();
         $gameId->shouldBeAUuid();
 
@@ -52,8 +65,11 @@ class GameManagerSpec extends ObjectBehavior
         $entityManager->flush()->shouldHaveBeenCalled();
     }
 
-    function it_creates_a_game_and_save_previous_one_with_failure_status(Session $session, EntityManager $entityManager)
-    {
+    function it_creates_a_game_and_save_previous_one_with_failure_status(
+        Session $session,
+        EntityManager $entityManager,
+        SchemaManager $schemaManager
+    ) {
         $previousGameId = Uuid::uuid4()->toString();
         $previousGame = $this->prophet->prophesize('AppBundle\Entity\Game');
 
@@ -68,57 +84,50 @@ class GameManagerSpec extends ObjectBehavior
 
         $entityManager->flush($previousGame)->shouldBeCalled();
 
+        $schemaDouble = $this->createASchemaDouble();
+        $schemaManager->createSchema(Argument::any(), Argument::any(), Argument::any())->willReturn($schemaDouble);
+
         $session->set(self::GAME_ID_SESSION_KEY, Argument::any())->shouldBeCalled();
+        $session->clear(GameManager::GAME_ID_SESSION_KEY)->shouldBeCalled();
         $entityManager->persist(Argument::Type(Game::class))->shouldBeCalled();
         $entityManager->flush()->shouldBeCalled();
 
         $this->newGame();
     }
 
-    function it_ends_a_game(Session $session, EntityManager $entityManager)
+    function it_opens_a_box_correctly(Session $session, EntityManager $entityManager, SchemaManager $schemaManager)
     {
-        $gameId = $this->newGame()->getWrappedObject();
+        $schemaDouble =  $this->createASchemaDouble();
+        $openedSchemaDouble = $this->openSchemaDouble();
 
-        $session->set(self::GAME_ID_SESSION_KEY, $gameId)->shouldBeCalled();
-        $session->get(self::GAME_ID_SESSION_KEY)->willReturn($gameId);
+        $this->retrieveGameExpectationsAndPromises($session, $entityManager, $schemaManager);
+        $schemaManager->openBox(0, 0, $schemaDouble)->shouldBeCalled();
+        $schemaManager->openBox(0, 0, $schemaDouble)->willReturn($openedSchemaDouble);
 
-        $this->makeGetGameExpectations($gameId, $entityManager);
-
-        $status = Game::STATUS_CLEARED;
-        $this->game->end($status)->shouldBeCalled();
-        $this->game->end($status)->willReturn($this->getDateInterval());
-
+        $this->game->setSchema($openedSchemaDouble)->shouldBeCalled();
         $entityManager->flush($this->game)->shouldBeCalled();
-        $session->clear(self::GAME_ID_SESSION_KEY)->shouldBeCalled();
 
-        $this->endGame($status)->shouldReturnAnInstanceOf('DateInterval');
+        $this->open(0, 0)->shouldBeArray();
     }
 
-    function it_throws_an_exception_if_game_cannot_be_ended(Session $session, EntityManager $entityManager)
+    function it_ends_a_game_after_open_a_mine(Session $session, EntityManager $entityManager, SchemaManager $schemaManager)
     {
-        $gameId = $this->newGame()->getWrappedObject();
+        $schemaDouble =  $this->createASchemaDouble();
 
-        $session->set(self::GAME_ID_SESSION_KEY, $gameId)->shouldBeCalled();
-        $session->get(self::GAME_ID_SESSION_KEY)->willReturn($gameId);
+        $this->retrieveGameExpectationsAndPromises($session, $entityManager, $schemaManager);
+        $schemaManager->openBox(3, 1, $schemaDouble)->shouldBeCalled();
+        $schemaManager->openBox(3, 1, $schemaDouble)->willThrow(OpeningMineBoxException::class);
 
-        $this->makeGetGameExpectations($gameId, $entityManager);
+        $this->game->end(Game::STATUS_FAILED)->shouldBeCalled();
+        $entityManager->flush($this->game)->shouldBeCalled();
+        $session->clear(GameManager::GAME_ID_SESSION_KEY)->shouldBeCalled();
 
-        $this->game->end(self::UNCORRECT_GAME_STATUS)->willThrow(new GameException());
-
-        $this->shouldThrow(GameManagerException::class)->duringEndGame(self::UNCORRECT_GAME_STATUS);
+        $this->open(3, 1)->shouldReturn(false);
     }
 
-    function it_throws_an_exception_if_game_cannot_be_found_onto_db_during_end(Session $session, EntityManager $entityManager)
+    function it_does_nothing_if_try_to_open_a_non_existent_box()
     {
-        $gameId = $this->newGame()->getWrappedObject();
-
-        $session->set(self::GAME_ID_SESSION_KEY, $gameId)->shouldBeCalled();
-        $session->get(self::GAME_ID_SESSION_KEY)->willReturn($gameId);
-
-        $entityManager->getRepository('AppBundle:Game')->willReturn($this->gameRepo);
-        $this->gameRepo->findOneBy(['id' => $gameId])->willReturn(null);
-
-        $this->shouldThrow(GameManagerException::class)->duringEndGame(self::UNCORRECT_GAME_STATUS);
+        $this->open(-1, 0)->shouldReturn(null);
     }
 
     public function getMatchers()
@@ -143,23 +152,65 @@ class GameManagerSpec extends ObjectBehavior
     }
 
     /**
-     * @return bool|\DateInterval
+     * @param Session $session
+     * @param EntityManager $entityManager
+     * @param SchemaManager $schemaManager
      */
-    private function getDateInterval()
-    {
-        $start = new \DateTime();
-        $end = new \DateTime();
+    private function retrieveGameExpectationsAndPromises(
+        Session $session,
+        EntityManager $entityManager,
+        SchemaManager $schemaManager
+    ) {
+        $schemaDouble = $this->createASchemaDouble();
+        $schemaManager->createSchema(Argument::any(), Argument::any(), Argument::any())->willReturn($schemaDouble);
 
-        return $start->diff($end);
+        $gameId = $this->newGame()->getWrappedObject();
+
+        $session->set(self::GAME_ID_SESSION_KEY, $gameId)->shouldBeCalled();
+        $session->get(self::GAME_ID_SESSION_KEY)->willReturn($gameId);
+
+        $entityManager->getRepository('AppBundle:Game')->willReturn($this->gameRepo);
+        $this->gameRepo->findOneBy(['id' => $gameId])->willReturn($this->game);
+
+        $this->game->getSchema()->willReturn($schemaDouble);
     }
 
     /**
-     * @param $gameId
-     * @param EntityManager $entityManager
+     * @return array
      */
-    private function makeGetGameExpectations($gameId, EntityManager $entityManager)
+    private function createASchemaDouble()
     {
-        $entityManager->getRepository('AppBundle:Game')->willReturn($this->gameRepo);
-        $this->gameRepo->findOneBy(['id' => $gameId])->willReturn($this->game);
+        return $this->getSchemaDouble();
+    }
+
+    /**
+     * @return array
+     */
+    private function getSchemaDouble()
+    {
+        return [
+            [new Box(0), new Box(0), new Box(1), new Box(1), new Box(1), new Box(0), new Box(0), new Box(0)],
+            [new Box(0), new Box(0), new Box(1), new MinedBox(), new Box(2), new Box(1), new Box(1), new Box(0)],
+            [new Box(1), new Box(1), new Box(3), new Box(3), new Box(4), new MinedBox(), new Box(1), new Box(0)],
+            [new Box(1), new MinedBox(), new Box(2), new MinedBox(), new MinedBox(), new Box(3), new Box(2), new Box(0)],
+            [new Box(1), new Box(1), new Box(3), new Box(3), new Box(4), new MinedBox(), new Box(1), new Box(0)],
+            [new Box(1), new Box(1), new Box(1), new MinedBox(), new Box(2), new Box(1), new Box(2), new Box(1)],
+            [new MinedBox(), new Box(1), new Box(1), new Box(1), new Box(1), new Box(0), new Box(1), new MinedBox()],
+            [new MinedBox(), new Box(2), new Box(0), new Box(0), new Box(0), new Box(0), new Box(1), new Box(1)],
+        ];
+    }
+
+    /**
+     * @return array
+     */
+    private function openSchemaDouble()
+    {
+        $schemaDouble = $this->getSchemaDouble();
+        /** @var $box BoxInterface */
+        $box = $schemaDouble[0][2];
+
+        $box->open();
+
+        return $schemaDouble;
     }
 }

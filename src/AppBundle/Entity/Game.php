@@ -49,7 +49,7 @@ class Game
         $this->startStamp = new \DateTime();
         $this->endStamp = null;
         $this->status = self::STATUS_STARTED;
-        $this->schema = []; // @todo: to be created properly
+        $this->schema = [];
     }
 
     /**
@@ -93,6 +93,18 @@ class Game
     public function getStatus()
     {
         return $this->status;
+    }
+
+    /**
+     * @param array $schema
+     *
+     * @return Game
+     */
+    public function setSchema(array $schema)
+    {
+        $this->schema = $schema;
+
+        return $this;
     }
 
     /**
