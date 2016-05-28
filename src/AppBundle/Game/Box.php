@@ -2,8 +2,6 @@
 
 namespace AppBundle\Game;
 
-use AppBundle\Exception\OpeningMineBoxException;
-
 class Box implements BoxInterface
 {
     const MINED_BOX_VALUE = -1;
