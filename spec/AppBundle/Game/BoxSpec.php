@@ -36,7 +36,7 @@ class BoxSpec extends ObjectBehavior
 
     function it_opens()
     {
-        $this->open();
+        $this->open()->shouldBeInteger();
         $this->isOpen()->shouldBeEqualTo(true);
     }
 }

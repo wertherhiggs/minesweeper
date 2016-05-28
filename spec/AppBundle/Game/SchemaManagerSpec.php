@@ -2,6 +2,9 @@
 
 namespace spec\AppBundle\Game;
 
+use AppBundle\Exception\OpeningMineBoxException;
+use AppBundle\Exception\SchemaManagerException;
+use AppBundle\Game\Box;
 use AppBundle\Game\BoxInterface;
 use AppBundle\Game\MinedBox;
 use PhpSpec\Exception\Example\FailureException;
@@ -26,6 +29,26 @@ class SchemaManagerSpec extends ObjectBehavior
         $schema = $this->createSchema(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
         $schema->shouldBeArray();
         $schema->shouldHaveOnlyBoxes(self::DEFAULT_NUMBER_OF_MINES);
+    }
+
+    function it_throws_a_schema_manager_exception_if_open_a_non_existent_box()
+    {
+        $schema = $this->createSchema(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
+        $this->shouldThrow(SchemaManagerException::class)->duringOpenBox(-1, -1, $schema);
+    }
+
+    function it_throws_a_opening_mine_box_exception_if_open_a_mined_box()
+    {
+        $schema = $this->createSchema(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
+        list($rowIndex, $columnIndex) = $this->findBoxFromInstance(MinedBox::class, $schema->getWrappedObject());
+        $this->shouldThrow(OpeningMineBoxException::class)->duringOpenBox($rowIndex, $columnIndex, $schema);
+    }
+
+    function it_opens_a_non_mined_box()
+    {
+        $schema = $this->createSchema(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
+        list($rowIndex, $columnIndex) = $this->findBoxFromInstance(Box::class, $schema->getWrappedObject());
+        $this->openBox($rowIndex, $columnIndex, $schema)->shouldBeArray();
     }
 
     public function getMatchers()
@@ -53,7 +76,7 @@ class SchemaManagerSpec extends ObjectBehavior
                     throw new FailureException("Result array should contains only BoxInterfaces");
                 }
 
-                if ($box instanceof MinedBox) {
+                if ($box->isMine()) {
                     $numberOfMines--;
                 } else {
                     $this->checkBoxValue($box, $schema, $row, $column);
@@ -111,6 +134,23 @@ class SchemaManagerSpec extends ObjectBehavior
                 $mines,
                 $boxValue
             ));
+        }
+    }
+
+    /**
+     * @param string $boxFQCN
+     * @param array $schema
+     *
+     * @return BoxInterface
+     */
+    private function findBoxFromInstance($boxFQCN, array $schema)
+    {
+        foreach ($schema as $rowIndex => $row) {
+            foreach ($row as $columnIndex => $box) {
+                if ($box instanceof $boxFQCN) {
+                    return [$rowIndex, $columnIndex];
+                }
+            }
         }
     }
 }

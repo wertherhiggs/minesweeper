@@ -2,6 +2,10 @@
 
 namespace AppBundle\Game;
 
+use AppBundle\Exception\OpeningMineBoxException;
+use AppBundle\Exception\SchemaManagerException;
+use Symfony\Component\VarDumper\VarDumper;
+
 class SchemaManager
 {
     /**
@@ -30,7 +34,83 @@ class SchemaManager
             }
         }
 
+        // $this->dumpVanillaSchema($schema);
         return $schema;
+    }
+
+    /**
+     * @param integer $rowIndex
+     * @param integer $columnIndex
+     * @param array $schema
+     *
+     * @return array
+     *
+     * @throws SchemaManagerException
+     * @throws OpeningMineBoxException
+     */
+    public function openBox($rowIndex, $columnIndex, array $schema)
+    {
+        if (!isset($schema[$rowIndex][$columnIndex])) {
+            throw new SchemaManagerException("You've requested to open a non-existent box");
+        }
+
+        /** @var $box BoxInterface */
+        $box = $schema[$rowIndex][$columnIndex];
+
+        if ($box->isMine()) {
+            $box->open(); // will throw an exception
+        }
+
+        $value = $box->getValue();
+
+        if ($value === 0) {
+            $this->recursiveOpen($rowIndex, $columnIndex, $schema);
+        } else {
+            $box->open();
+        }
+
+        // $this->dumpGameSchema($schema);
+        return $schema;
+    }
+
+    /**
+     * @param integer $rowIndex
+     * @param integer $columnIndex
+     * @param array $schema
+     *
+     * @return bool
+     */
+    protected function recursiveOpen($rowIndex, $columnIndex, array $schema)
+    {
+        if (!isset($schema[$rowIndex][$columnIndex])) {
+            return;
+        }
+
+        /** @var $box BoxInterface */
+        $box = $schema[$rowIndex][$columnIndex];
+
+        if ($box->isMine()) {
+            return;
+        }
+
+        if ($box->isOpen()) {
+            return;
+        }
+
+        $value = $box->open();
+
+        if ($value !== 0) {
+            return;
+        }
+
+        return $this->recursiveOpen($rowIndex-1, $columnIndex-1, $schema) ||
+            $this->recursiveOpen($rowIndex-1, $columnIndex, $schema) ||
+            $this->recursiveOpen($rowIndex-1, $columnIndex+1, $schema) ||
+            $this->recursiveOpen($rowIndex, $columnIndex-1, $schema) ||
+            $this->recursiveOpen($rowIndex, $columnIndex+1, $schema) ||
+            $this->recursiveOpen($rowIndex+1, $columnIndex-1, $schema) ||
+            $this->recursiveOpen($rowIndex+1, $columnIndex, $schema) ||
+            $this->recursiveOpen($rowIndex+1, $columnIndex+1, $schema);
     }
 
     /**
@@ -200,5 +280,47 @@ class SchemaManager
     protected function checkBottomRightBox($rowNumber, $columnNumber)
     {
         return isset($this->mines[$rowNumber+1][$columnNumber+1]);
+    }
+
+    /**
+     * For debug purposes only. Vanilla schema is just the underlying
+     * schema. Not the schema representation game.
+     *
+     * @param array $schema
+     */
+    protected function dumpVanillaSchema(array $schema)
+    {
+        foreach ($schema as $row) {
+            $rowString = '';
+            foreach ($row as $box) {
+                /** @var $box BoxInterface */
+                $value = $box->isMine() ? 'X' : $box->getValue();
+                $rowString .= $value.' ';
+            }
+            VarDumper::dump($rowString);
+        }
+    }
+
+    /**
+     * For debug purposes only. Game schema is the representation
+     * of schema during a game.
+     *
+     * @param array $schema
+     */
+    protected function dumpGameSchema(array $schema)
+    {
+        foreach ($schema as $row) {
+            $rowString = '';
+            foreach ($row as $box) {
+                /** @var $box BoxInterface */
+                if ($box->isMine()) {
+                    $value = 'X';
+                } else {
+                    $value = $box->isOpen() ? $box->getValue() : '-';
+                }
+                $rowString .= $value.' ';
+            }
+            VarDumper::dump($rowString);
+        }
     }
 }

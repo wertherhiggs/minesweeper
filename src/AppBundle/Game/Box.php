@@ -48,12 +48,12 @@ class Box implements BoxInterface
     }
 
     /**
-     * @return bool
+     * @return int
      */
     public function open()
     {
         $this->isOpen = true;
 
-        return true;
+        return $this->getValue();
     }
 }
