@@ -1,7 +1,23 @@
 <HTML>
 <HEAD>
+<style>
+  table.scheme { border: 1px solid black; }
+  table.scheme td { border: 1px solid black; width: 20px; height: 20px; }
+  td.box { background-color: #232323 }
+  td.open { background-color: #7d7c7c }
+</style>
 </HEAD>
 <BODY>
 Start game page!
+
+<table class="scheme">
+  {% for rowIndex, rows in scheme %}
+    <tr>
+      {% for boxIndex, box in rows %}
+          <td id="{{ rowIndex }}-{{ boxIndex }}" class="box"></td>
+      {% endfor %}
+    </tr>
+  {% endfor %}
+</table>
 </BODY>
 </HTML>
