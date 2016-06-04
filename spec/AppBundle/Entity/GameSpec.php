@@ -19,7 +19,7 @@ class GameSpec extends ObjectBehavior
         $this->getStartStamp()->shouldBeAnInstanceOf('DateTime');
         $this->getEndStamp()->shouldBeNull();
         $this->getStatus()->shouldBeEqualTo(Game::STATUS_STARTED);
-        $this->getSchema()->shouldBeArray();
+        $this->getScheme()->shouldBeArray();
     }
 
     function it_ends_correctly()

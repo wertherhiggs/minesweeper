@@ -6,7 +6,7 @@ use AppBundle\Entity\Game;
 use AppBundle\Exception\GameException;
 use AppBundle\Exception\GameManagerException;
 use AppBundle\Exception\OpeningMineBoxException;
-use AppBundle\Exception\SchemaManagerException;
+use AppBundle\Exception\SchemeManagerException;
 use Doctrine\ORM\EntityManager;
 use Symfony\Component\HttpFoundation\Session\Session;
 
@@ -26,19 +26,19 @@ class GameManager
     /** @var EntityManager  */
     private $entityManager;
 
-    /** @var SchemaManager */
-    private $schemaManager;
+    /** @var SchemeManager */
+    private $schemeManager;
 
     /**
      * @param Session $session
      * @param EntityManager $entityManager
-     * @param SchemaManager $schemaManager
+     * @param SchemeManager $schemeManager
      */
-    public function __construct(Session $session, EntityManager $entityManager, SchemaManager $schemaManager)
+    public function __construct(Session $session, EntityManager $entityManager, SchemeManager $schemeManager)
     {
         $this->session = $session;
         $this->entityManager = $entityManager;
-        $this->schemaManager = $schemaManager;
+        $this->schemeManager = $schemeManager;
     }
 
     /**
@@ -49,7 +49,7 @@ class GameManager
         $this->handlePreviousGame();
 
         $game = new Game();
-        $game->setSchema($this->schemaManager->createSchema(
+        $game->setScheme($this->schemeManager->createScheme(
             self::DEFAULT_ROWS_NUMBER,
             self::DEFAULT_COLUMNS_NUMBER,
             self::DEFAULT_NUMBER_OF_MINES
@@ -137,12 +137,15 @@ class GameManager
     protected function handlePreviousGame()
     {
         $gameId = $this->getGameUuidFromSession();
-
         if (!$gameId) {
             return;
         }
 
         $previousGame = $this->getGameFromId($gameId);
+        if (!$previousGame) { // Maybe game was not saved
+            return;
+        }
+
         if ($previousGame->getStatus() == Game::STATUS_STARTED) {
             $this->endGame($previousGame, Game::STATUS_FAILED);
         }
@@ -156,7 +159,7 @@ class GameManager
      * @return array|bool
      *
      * @throws GameManagerException
-     * @throws SchemaManagerException
+     * @throws SchemeManagerException
      */
     public function open($row, $column)
     {
@@ -168,11 +171,11 @@ class GameManager
         $game = $this->getGameFromId($gameId);
 
         try {
-            $schema = $this->schemaManager->openBox($row, $column, $game->getSchema());
-            $game->setSchema($schema);
+            $scheme = $this->schemeManager->openBox($row, $column, $game->getScheme());
+            $game->setScheme($scheme);
             $this->entityManager->flush($game);
 
-            return $schema;
+            return $scheme;
         } catch (OpeningMineBoxException $e) {
             $this->endGame($game, Game::STATUS_FAILED);
 
@@ -233,5 +236,21 @@ class GameManager
         }
 
         return false;
+    }
+
+    /**
+     * @return Game
+     *
+     * @throws GameManagerException
+     */
+    public function getScheme()
+    {
+        $game = $this->getGameFromId($this->getGameUuidFromSession());
+
+        if (!$game) {
+            throw new GameManagerException("You should start a game before calling this");
+        }
+
+        return $game->getScheme();
     }
 }

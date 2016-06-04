@@ -3,7 +3,7 @@
 namespace spec\AppBundle\Game;
 
 use AppBundle\Exception\OpeningMineBoxException;
-use AppBundle\Exception\SchemaManagerException;
+use AppBundle\Exception\SchemeManagerException;
 use AppBundle\Game\Box;
 use AppBundle\Game\BoxInterface;
 use AppBundle\Game\MinedBox;
@@ -11,7 +11,7 @@ use PhpSpec\Exception\Example\FailureException;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 
-class SchemaManagerSpec extends ObjectBehavior
+class SchemeManagerSpec extends ObjectBehavior
 {
     const DEFAULT_ROWS_NUMBER = 16;
 
@@ -21,34 +21,34 @@ class SchemaManagerSpec extends ObjectBehavior
 
     function it_is_initializable()
     {
-        $this->shouldHaveType('AppBundle\Game\SchemaManager');
+        $this->shouldHaveType('AppBundle\Game\SchemeManager');
     }
 
-    function it_creates_a_schema()
+    function it_creates_a_scheme()
     {
-        $schema = $this->createSchema(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
-        $schema->shouldBeArray();
-        $schema->shouldHaveOnlyBoxes(self::DEFAULT_NUMBER_OF_MINES);
+        $scheme = $this->createScheme(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
+        $scheme->shouldBeArray();
+        $scheme->shouldHaveOnlyBoxes(self::DEFAULT_NUMBER_OF_MINES);
     }
 
-    function it_throws_a_schema_manager_exception_if_open_a_non_existent_box()
+    function it_throws_a_scheme_manager_exception_if_open_a_non_existent_box()
     {
-        $schema = $this->createSchema(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
-        $this->shouldThrow(SchemaManagerException::class)->duringOpenBox(-1, -1, $schema);
+        $scheme = $this->createScheme(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
+        $this->shouldThrow(SchemeManagerException::class)->duringOpenBox(-1, -1, $scheme);
     }
 
     function it_throws_a_opening_mine_box_exception_if_open_a_mined_box()
     {
-        $schema = $this->createSchema(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
-        list($rowIndex, $columnIndex) = $this->findBoxFromInstance(MinedBox::class, $schema->getWrappedObject());
-        $this->shouldThrow(OpeningMineBoxException::class)->duringOpenBox($rowIndex, $columnIndex, $schema);
+        $scheme = $this->createScheme(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
+        list($rowIndex, $columnIndex) = $this->findBoxFromInstance(MinedBox::class, $scheme->getWrappedObject());
+        $this->shouldThrow(OpeningMineBoxException::class)->duringOpenBox($rowIndex, $columnIndex, $scheme);
     }
 
     function it_opens_a_non_mined_box()
     {
-        $schema = $this->createSchema(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
-        list($rowIndex, $columnIndex) = $this->findBoxFromInstance(Box::class, $schema->getWrappedObject());
-        $this->openBox($rowIndex, $columnIndex, $schema)->shouldBeArray();
+        $scheme = $this->createScheme(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
+        list($rowIndex, $columnIndex) = $this->findBoxFromInstance(Box::class, $scheme->getWrappedObject());
+        $this->openBox($rowIndex, $columnIndex, $scheme)->shouldBeArray();
     }
 
     public function getMatchers()
@@ -59,18 +59,18 @@ class SchemaManagerSpec extends ObjectBehavior
     }
 
     /**
-     * @param array $schema
+     * @param array $scheme
      * @param integer $numberOfMines
      *
      * @return bool
      *
      * @throws FailureException
      */
-    public function haveOnlyBoxes(array $schema, $numberOfMines)
+    public function haveOnlyBoxes(array $scheme, $numberOfMines)
     {
         $originalNumberOfMines = $numberOfMines;
 
-        foreach ($schema as $row => $rows) {
+        foreach ($scheme as $row => $rows) {
             foreach ($rows as $column => $box) {
                 if (!$box instanceof BoxInterface) {
                     throw new FailureException("Result array should contains only BoxInterfaces");
@@ -79,7 +79,7 @@ class SchemaManagerSpec extends ObjectBehavior
                 if ($box->isMine()) {
                     $numberOfMines--;
                 } else {
-                    $this->checkBoxValue($box, $schema, $row, $column);
+                    $this->checkBoxValue($box, $scheme, $row, $column);
                 }
             }
         }
@@ -97,13 +97,13 @@ class SchemaManagerSpec extends ObjectBehavior
 
     /**
      * @param BoxInterface $box
-     * @param array $schema
+     * @param array $scheme
      * @param integer $row
      * @param integer $column
      *
      * @throws FailureException
      */
-    private function checkBoxValue(BoxInterface $box, array $schema, $row, $column)
+    private function checkBoxValue(BoxInterface $box, array $scheme, $row, $column)
     {
         $boxValue = $box->getValue();
         $mines = 0;
@@ -114,11 +114,11 @@ class SchemaManagerSpec extends ObjectBehavior
                     continue;
                 }
 
-                if (!isset($schema[$row+$rowCycleIndex][$column+$columnCycleIndex])) {
+                if (!isset($scheme[$row+$rowCycleIndex][$column+$columnCycleIndex])) {
                     continue;
                 }
 
-                if (!$schema[$row+$rowCycleIndex][$column+$columnCycleIndex] instanceof MinedBox) {
+                if (!$scheme[$row+$rowCycleIndex][$column+$columnCycleIndex] instanceof MinedBox) {
                     continue;
                 }
 
@@ -128,7 +128,7 @@ class SchemaManagerSpec extends ObjectBehavior
 
         if ($boxValue != $mines) {
             throw new FailureException(sprintf(
-                "Schema not created correctly at row %s column %s . Expected value of %s, got %s",
+                "Scheme not created correctly at row %s column %s . Expected value of %s, got %s",
                 $row,
                 $column,
                 $mines,
@@ -139,13 +139,13 @@ class SchemaManagerSpec extends ObjectBehavior
 
     /**
      * @param string $boxFQCN
-     * @param array $schema
+     * @param array $scheme
      *
      * @return BoxInterface
      */
-    private function findBoxFromInstance($boxFQCN, array $schema)
+    private function findBoxFromInstance($boxFQCN, array $scheme)
     {
-        foreach ($schema as $rowIndex => $row) {
+        foreach ($scheme as $rowIndex => $row) {
             foreach ($row as $columnIndex => $box) {
                 if ($box instanceof $boxFQCN) {
                     return [$rowIndex, $columnIndex];

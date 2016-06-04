@@ -9,10 +9,10 @@
         <service id="app.game.game_manager" class="AppBundle\Game\GameManager">
             <argument type="service" id="session" />
             <argument type="service" id="doctrine.orm.entity_manager" />
-            <argument type="service" id="app.game.schema_manager" />
+            <argument type="service" id="app.game.scheme_manager" />
         </service>
 
-        <service id="app.game.schema_manager" class="AppBundle\Game\SchemaManager" />
+        <service id="app.game.scheme_manager" class="AppBundle\Game\SchemeManager" />
 
     </services>
 

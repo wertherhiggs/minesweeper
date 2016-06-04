@@ -3,13 +3,13 @@
 namespace AppBundle\Game;
 
 use AppBundle\Exception\OpeningMineBoxException;
-use AppBundle\Exception\SchemaManagerException;
+use AppBundle\Exception\SchemeManagerException;
 use Symfony\Component\VarDumper\VarDumper;
 
-class SchemaManager
+class SchemeManager
 {
     /**
-     * Will keep a mines schema populated after createMinesSchema() call.
+     * Will keep a mines scheme populated after createMinesScheme() call.
      *
      * @var array
      */
@@ -22,40 +22,40 @@ class SchemaManager
      *
      * @return array
      */
-    public function createSchema($rows, $columns, $minesNumber)
+    public function createScheme($rows, $columns, $minesNumber)
     {
-        $this->createMinesSchema($rows, $columns, $minesNumber);
+        $this->createMinesScheme($rows, $columns, $minesNumber);
 
-        $schema = [];
+        $scheme = [];
         for ($rowNumber = 0; $rowNumber < $rows; $rowNumber++) {
             for ($columnNumber = 0; $columnNumber < $columns; $columnNumber++) {
                 $box = $this->getBox($rowNumber, $columnNumber);
-                $schema[$rowNumber][$columnNumber] = $box;
+                $scheme[$rowNumber][$columnNumber] = $box;
             }
         }
 
-        // $this->dumpVanillaSchema($schema);
-        return $schema;
+        // $this->dumpVanillaScheme($scheme);
+        return $scheme;
     }
 
     /**
      * @param integer $rowIndex
      * @param integer $columnIndex
-     * @param array $schema
+     * @param array $scheme
      *
      * @return array
      *
-     * @throws SchemaManagerException
+     * @throws SchemeManagerException
      * @throws OpeningMineBoxException
      */
-    public function openBox($rowIndex, $columnIndex, array $schema)
+    public function openBox($rowIndex, $columnIndex, array $scheme)
     {
-        if (!isset($schema[$rowIndex][$columnIndex])) {
-            throw new SchemaManagerException("You've requested to open a non-existent box");
+        if (!isset($scheme[$rowIndex][$columnIndex])) {
+            throw new SchemeManagerException("You've requested to open a non-existent box");
         }
 
         /** @var $box BoxInterface */
-        $box = $schema[$rowIndex][$columnIndex];
+        $box = $scheme[$rowIndex][$columnIndex];
 
         if ($box->isMine()) {
             $box->open(); // will throw an exception
@@ -64,30 +64,30 @@ class SchemaManager
         $value = $box->getValue();
 
         if ($value === 0) {
-            $this->recursiveOpen($rowIndex, $columnIndex, $schema);
+            $this->recursiveOpen($rowIndex, $columnIndex, $scheme);
         } else {
             $box->open();
         }
 
-        // $this->dumpGameSchema($schema);
-        return $schema;
+        // $this->dumpGameScheme($scheme);
+        return $scheme;
     }
 
     /**
      * @param integer $rowIndex
      * @param integer $columnIndex
-     * @param array $schema
+     * @param array $scheme
      *
      * @return bool
      */
-    protected function recursiveOpen($rowIndex, $columnIndex, array $schema)
+    protected function recursiveOpen($rowIndex, $columnIndex, array $scheme)
     {
-        if (!isset($schema[$rowIndex][$columnIndex])) {
+        if (!isset($scheme[$rowIndex][$columnIndex])) {
             return;
         }
 
         /** @var $box BoxInterface */
-        $box = $schema[$rowIndex][$columnIndex];
+        $box = $scheme[$rowIndex][$columnIndex];
 
         if ($box->isMine()) {
             return;
@@ -103,14 +103,14 @@ class SchemaManager
             return;
         }
 
-        return $this->recursiveOpen($rowIndex-1, $columnIndex-1, $schema) ||
-            $this->recursiveOpen($rowIndex-1, $columnIndex, $schema) ||
-            $this->recursiveOpen($rowIndex-1, $columnIndex+1, $schema) ||
-            $this->recursiveOpen($rowIndex, $columnIndex-1, $schema) ||
-            $this->recursiveOpen($rowIndex, $columnIndex+1, $schema) ||
-            $this->recursiveOpen($rowIndex+1, $columnIndex-1, $schema) ||
-            $this->recursiveOpen($rowIndex+1, $columnIndex, $schema) ||
-            $this->recursiveOpen($rowIndex+1, $columnIndex+1, $schema);
+        return $this->recursiveOpen($rowIndex-1, $columnIndex-1, $scheme) ||
+            $this->recursiveOpen($rowIndex-1, $columnIndex, $scheme) ||
+            $this->recursiveOpen($rowIndex-1, $columnIndex+1, $scheme) ||
+            $this->recursiveOpen($rowIndex, $columnIndex-1, $scheme) ||
+            $this->recursiveOpen($rowIndex, $columnIndex+1, $scheme) ||
+            $this->recursiveOpen($rowIndex+1, $columnIndex-1, $scheme) ||
+            $this->recursiveOpen($rowIndex+1, $columnIndex, $scheme) ||
+            $this->recursiveOpen($rowIndex+1, $columnIndex+1, $scheme);
     }
 
     /**
@@ -120,7 +120,7 @@ class SchemaManager
      *
      * @return bool
      */
-    protected function createMinesSchema($rowsNumber, $columnsNumber, $minesNumber)
+    protected function createMinesScheme($rowsNumber, $columnsNumber, $minesNumber)
     {
         $mines = [];
         while ($minesNumber) {
@@ -146,7 +146,7 @@ class SchemaManager
      */
     protected function getBox($rowNumber, $columnNumber)
     {
-        // @todo: throw an exception if schema is not initialized?
+        // @todo: throw an exception if scheme is not initialized?
 
         if ($this->checkIfGotMine($rowNumber, $columnNumber)) {
             $box = new MinedBox();
@@ -283,14 +283,14 @@ class SchemaManager
     }
 
     /**
-     * For debug purposes only. Vanilla schema is just the underlying
-     * schema. Not the schema representation game.
+     * For debug purposes only. Vanilla scheme is just the underlying
+     * scheme. Not the scheme representation game.
      *
-     * @param array $schema
+     * @param array $scheme
      */
-    protected function dumpVanillaSchema(array $schema)
+    protected function dumpVanillaScheme(array $scheme)
     {
-        foreach ($schema as $row) {
+        foreach ($scheme as $row) {
             $rowString = '';
             foreach ($row as $box) {
                 /** @var $box BoxInterface */
@@ -302,14 +302,14 @@ class SchemaManager
     }
 
     /**
-     * For debug purposes only. Game schema is the representation
-     * of schema during a game.
+     * For debug purposes only. Game scheme is the representation
+     * of scheme during a game.
      *
-     * @param array $schema
+     * @param array $scheme
      */
-    protected function dumpGameSchema(array $schema)
+    protected function dumpGameScheme(array $scheme)
     {
-        foreach ($schema as $row) {
+        foreach ($scheme as $row) {
             $rowString = '';
             foreach ($row as $box) {
                 /** @var $box BoxInterface */

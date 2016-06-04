@@ -34,14 +34,14 @@ class Game
     private $endStamp;
 
     /**
-     * @ORM\Column(type="boolean")
+     * @ORM\Column(type="integer")
      */
     private $status = self::STATUS_NOT_STARTED;
 
     /**
      * @ORM\Column(type="array")
      */
-    private $schema;
+    private $scheme;
 
     public function __construct()
     {
@@ -49,7 +49,7 @@ class Game
         $this->startStamp = new \DateTime();
         $this->endStamp = null;
         $this->status = self::STATUS_STARTED;
-        $this->schema = [];
+        $this->scheme = [];
     }
 
     /**
@@ -96,25 +96,25 @@ class Game
     }
 
     /**
-     * @param array $schema
+     * @param array $scheme
      *
      * @return Game
      */
-    public function setSchema(array $schema)
+    public function setScheme(array $scheme)
     {
-        $this->schema = $schema;
+        $this->scheme = $scheme;
 
         return $this;
     }
 
     /**
-     * Get schema
+     * Get scheme
      *
      * @return array
      */
-    public function getSchema()
+    public function getScheme()
     {
-        return $this->schema;
+        return $this->scheme;
     }
 
     /**

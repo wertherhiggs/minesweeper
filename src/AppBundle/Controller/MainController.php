@@ -14,6 +14,11 @@ class MainController extends Controller
      */
     public function startGameAction()
     {
+        $gameManager = $this->get('app.game.game_manager');
+        $gameManager->newGame();
 
+        return [
+            'scheme' => $gameManager->getScheme(),
+        ];
     }
 }
