@@ -12,3 +12,9 @@ To run this you should have installed:
 Remember to perform this before start
 
     sudo cat '192.168.33.99 minesweeper' >> /etc/hosts
+
+and to access vagrant via `ssh` to generate database
+
+    cd /vagrant
+    php app/consolle doctrine:migrations:migrate
+
