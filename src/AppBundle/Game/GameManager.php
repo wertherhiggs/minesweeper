@@ -171,11 +171,11 @@ class GameManager
         $game = $this->getGameFromId($gameId);
 
         try {
-            $scheme = $this->schemeManager->openBox($row, $column, $game->getScheme());
-            $game->setScheme($scheme);
+            $openBoxesStackBuilder = $this->schemeManager->openBox($row, $column, $game->getScheme());
+            $game->setScheme($openBoxesStackBuilder->getScheme());
             $this->entityManager->flush($game);
 
-            return $scheme;
+            return $openBoxesStackBuilder;
         } catch (OpeningMineBoxException $e) {
             $this->endGame($game, Game::STATUS_FAILED);
 

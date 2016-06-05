@@ -7,9 +7,11 @@ use AppBundle\Exception\SchemeManagerException;
 use AppBundle\Game\Box;
 use AppBundle\Game\BoxInterface;
 use AppBundle\Game\MinedBox;
+use AppBundle\Game\OpenBoxesStackBuilder;
 use PhpSpec\Exception\Example\FailureException;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
+use Prophecy\Prophet;
 
 class SchemeManagerSpec extends ObjectBehavior
 {
@@ -46,9 +48,14 @@ class SchemeManagerSpec extends ObjectBehavior
 
     function it_opens_a_non_mined_box()
     {
-        $scheme = $this->createScheme(self::DEFAULT_ROWS_NUMBER, self::DEFAULT_COLUMNS_NUMBER, self::DEFAULT_NUMBER_OF_MINES);
-        list($rowIndex, $columnIndex) = $this->findBoxFromInstance(Box::class, $scheme->getWrappedObject());
-        $this->openBox($rowIndex, $columnIndex, $scheme)->shouldBeArray();
+        $prophet = new Prophet();
+        $boxDouble = $prophet->prophesize('AppBundle\Game\Box');
+        $scheme = [[$boxDouble]];
+
+        $boxDouble->isMine()->shouldBeCalled();
+        $boxDouble->getValue()->shouldBeCalled();
+        $boxDouble->open()->shouldBeCalled();
+        $this->openBox(0, 0, $scheme)->shouldBeAnInstanceOf(OpenBoxesStackBuilder::class);
     }
 
     public function getMatchers()

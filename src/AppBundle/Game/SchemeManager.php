@@ -18,9 +18,9 @@ class SchemeManager
     /**
      * Will keep the scheme (for boxes opening purpose)
      *
-     * @var array
+     * @var OpenBoxesStackBuilder
      */
-    private $scheme;
+    private $openBoxesStackBuilder;
 
     /**
      * @param integer $rows
@@ -50,7 +50,7 @@ class SchemeManager
      * @param integer $columnIndex
      * @param array $scheme
      *
-     * @return array
+     * @return OpenBoxesStackBuilder
      *
      * @throws SchemeManagerException
      * @throws OpeningMineBoxException
@@ -70,15 +70,15 @@ class SchemeManager
 
         $value = $box->getValue();
 
+        $this->openBoxesStackBuilder = new OpenBoxesStackBuilder($scheme);
         if ($value === 0) {
-            $this->scheme = $scheme;
             $this->recursiveOpen($rowIndex, $columnIndex);
         } else {
             $box->open();
+            $this->openBoxesStackBuilder->addBox($rowIndex, $columnIndex, $box);
         }
-
-        // $this->dumpGameScheme($scheme);
-        return $scheme;
+        
+        return $this->openBoxesStackBuilder;
     }
 
     /**
@@ -89,12 +89,14 @@ class SchemeManager
      */
     protected function recursiveOpen($rowIndex, $columnIndex)
     {
-        if (!isset($this->scheme[$rowIndex][$columnIndex])) {
+        $scheme = $this->openBoxesStackBuilder->getScheme();
+
+        if (!isset($scheme[$rowIndex][$columnIndex])) {
             return;
         }
 
         /** @var $box BoxInterface */
-        $box = $this->scheme[$rowIndex][$columnIndex];
+        $box = $scheme[$rowIndex][$columnIndex];
 
         if ($box->isMine()) {
             return;
@@ -105,6 +107,7 @@ class SchemeManager
         }
 
         $value = $box->open();
+        $this->openBoxesStackBuilder->addBox($rowIndex, $columnIndex, $box);
 
         if ($value !== 0) {
             return;

@@ -9,6 +9,7 @@ use AppBundle\Game\Box;
 use AppBundle\Game\BoxInterface;
 use AppBundle\Game\GameManager;
 use AppBundle\Game\MinedBox;
+use AppBundle\Game\OpenBoxesStackBuilder;
 use AppBundle\Game\SchemeManager;
 use Doctrine\ORM\EntityManager;
 use PhpSpec\Exception\Example\FailureException;
@@ -101,14 +102,17 @@ class GameManagerSpec extends ObjectBehavior
         $schemeDouble =  $this->createASchemeDouble();
         $openedSchemeDouble = $this->openSchemeDouble();
 
+        $openBoxesStackBuilderDouble = $this->prophet->prophesize('AppBundle\Game\OpenBoxesStackBuilder');
+        $openBoxesStackBuilderDouble->getScheme()->willReturn($openedSchemeDouble);
+
         $this->retrieveGameExpectationsAndPromises($session, $entityManager, $schemeManager);
         $schemeManager->openBox(0, 0, $schemeDouble)->shouldBeCalled();
-        $schemeManager->openBox(0, 0, $schemeDouble)->willReturn($openedSchemeDouble);
+        $schemeManager->openBox(0, 0, $schemeDouble)->willReturn($openBoxesStackBuilderDouble);
 
         $this->game->setScheme($openedSchemeDouble)->shouldBeCalled();
         $entityManager->flush($this->game)->shouldBeCalled();
 
-        $this->open(0, 0)->shouldBeArray();
+        $this->open(0, 0)->shouldBeAnInstanceOf(OpenBoxesStackBuilder::class);
     }
 
     function it_ends_a_game_after_open_a_mine(Session $session, EntityManager $entityManager, SchemeManager $schemeManager)
