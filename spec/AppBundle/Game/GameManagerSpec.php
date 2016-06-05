@@ -109,10 +109,14 @@ class GameManagerSpec extends ObjectBehavior
         $schemeManager->openBox(0, 0, $schemeDouble)->shouldBeCalled();
         $schemeManager->openBox(0, 0, $schemeDouble)->willReturn($openBoxesStackBuilderDouble);
 
+        $openBoxesStackBuilderDouble->getStackedBoxes()->willReturn([0 => [0 => $schemeDouble[0][0]]]);
+
         $this->game->setScheme($openedSchemeDouble)->shouldBeCalled();
         $entityManager->flush($this->game)->shouldBeCalled();
 
-        $this->open(0, 0)->shouldBeAnInstanceOf(OpenBoxesStackBuilder::class);
+        $result = $this->open(0, 0);
+        $result[GameManager::STATUS_CODE_JSON_KEY]->shouldBeEqualTo(GameManager::GAME_STATUS_JSON_OK_CODE);
+        $result[GameManager::OPENED_MINES_JSON_KEY]->shouldBeEqualTo([0 => [0 => 0]]);
     }
 
     function it_ends_a_game_after_open_a_mine(Session $session, EntityManager $entityManager, SchemeManager $schemeManager)
@@ -127,7 +131,8 @@ class GameManagerSpec extends ObjectBehavior
         $entityManager->flush($this->game)->shouldBeCalled();
         $session->clear(GameManager::GAME_ID_SESSION_KEY)->shouldBeCalled();
 
-        $this->open(3, 1)->shouldReturn(false);
+        $result = $this->open(3, 1);
+        $result[GameManager::STATUS_CODE_JSON_KEY]->shouldBeEqualTo(GameManager::GAME_STATUS_JSON_KO_CODE);
     }
 
     function it_does_nothing_if_try_to_open_a_non_existent_box()

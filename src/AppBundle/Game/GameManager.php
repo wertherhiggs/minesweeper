@@ -20,6 +20,14 @@ class GameManager
 
     const DEFAULT_NUMBER_OF_MINES = 99;
 
+    const STATUS_CODE_JSON_KEY = 'status_code';
+
+    const OPENED_MINES_JSON_KEY = 'opened_mines';
+
+    const GAME_STATUS_JSON_OK_CODE = 'OK';
+
+    const GAME_STATUS_JSON_KO_CODE = 'ENDED';
+
     /** @var Session */
     private $session;
 
@@ -175,11 +183,11 @@ class GameManager
             $game->setScheme($openBoxesStackBuilder->getScheme());
             $this->entityManager->flush($game);
 
-            return $openBoxesStackBuilder;
+            return $this->createArrayForJsonOpenResult($openBoxesStackBuilder);
         } catch (OpeningMineBoxException $e) {
             $this->endGame($game, Game::STATUS_FAILED);
 
-            return false;
+            return $this->createArrayForJsonOpenResult(null);
         }
     }
 
@@ -252,5 +260,34 @@ class GameManager
         }
 
         return $game->getScheme();
+    }
+
+    /**
+     * @param OpenBoxesStackBuilder|null $openBoxesStackBuilder
+     *
+     * @return array
+     */
+    protected function createArrayForJsonOpenResult(OpenBoxesStackBuilder $openBoxesStackBuilder = null)
+    {
+        if (null == $openBoxesStackBuilder) {
+            return [
+                self::STATUS_CODE_JSON_KEY => self::GAME_STATUS_JSON_KO_CODE,
+                self::OPENED_MINES_JSON_KEY => [],
+            ];
+        }
+
+        $result = [
+            self::STATUS_CODE_JSON_KEY => self::GAME_STATUS_JSON_OK_CODE,
+            self::OPENED_MINES_JSON_KEY => [],
+        ];
+
+        foreach ($openBoxesStackBuilder->getStackedBoxes() as $rowIndex => $columns) {
+            foreach ($columns as $columnIndex => $box) {
+                /** @var $box BoxInterface */
+                $result[self::OPENED_MINES_JSON_KEY][$rowIndex][$columnIndex] = $box->getValue();
+            }
+        }
+
+        return $result;
     }
 }
