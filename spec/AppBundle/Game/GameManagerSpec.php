@@ -116,7 +116,7 @@ class GameManagerSpec extends ObjectBehavior
 
         $result = $this->open(0, 0);
         $result[GameManager::STATUS_CODE_JSON_KEY]->shouldBeEqualTo(GameManager::GAME_STATUS_JSON_OK_CODE);
-        $result[GameManager::OPENED_MINES_JSON_KEY]->shouldBeEqualTo([0 => [0 => 0]]);
+        $result[GameManager::OPENED_MINES_JSON_KEY]->shouldBeEqualTo(["r_0" => ["c_0" => 0]]);
     }
 
     function it_ends_a_game_after_open_a_mine(Session $session, EntityManager $entityManager, SchemeManager $schemeManager)

@@ -284,7 +284,7 @@ class GameManager
         foreach ($openBoxesStackBuilder->getStackedBoxes() as $rowIndex => $columns) {
             foreach ($columns as $columnIndex => $box) {
                 /** @var $box BoxInterface */
-                $result[self::OPENED_MINES_JSON_KEY][$rowIndex][$columnIndex] = $box->getValue();
+                $result[self::OPENED_MINES_JSON_KEY]["r_$rowIndex"]["c_$columnIndex"] = $box->getValue();
             }
         }
 

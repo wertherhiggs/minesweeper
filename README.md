@@ -13,8 +13,9 @@ Remember to perform this before start
 
     sudo cat '192.168.33.99 minesweeper' >> /etc/hosts
 
-and to access vagrant via `ssh` to generate database
+and to access vagrant via `ssh` to generate database and to install assets
 
     cd /vagrant
     php app/consolle doctrine:migrations:migrate
+    php app/console assets:install --symlink web
 

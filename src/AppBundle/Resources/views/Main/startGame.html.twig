@@ -1,10 +1,23 @@
 <HTML>
 <HEAD>
+{% javascripts '@AppBundle/Resources/public/js/*' %}
+  <script src="{{ asset('bundles/fosjsrouting/js/router.js') }}"></script>
+  <script src="{{ path('fos_js_routing_js', { callback: 'fos.Router.setData' }) }}"></script>
+  <script src="{{ asset_url }}"></script>
+{% endjavascripts %}
 <style>
   table.scheme { border: 1px solid black; }
-  table.scheme td { border: 1px solid black; width: 20px; height: 20px; }
+  table.scheme td { border: 1px solid black; width: 20px; height: 20px; text-align: center }
   td.box { background-color: #232323 }
-  td.open { background-color: #7d7c7c }
+  td.open { background-color: #a9a9a9 }
+  td.one_mine { color: #143fdc }
+  td.two_mines { color: #12770b }
+  td.three_mines { color: #d20000 }
+  td.four_mines { color: #5a00d2 }
+  td.five_mines { color: #961313 }
+  td.six_mines { color: #139096 }
+  td.seven_mines { color: #000000 }
+  td.eight_mines { color: #7b7878 }
 </style>
 </HEAD>
 <BODY>

@@ -25,7 +25,7 @@ class MainController extends Controller
     }
 
     /**
-     * @Route("/open", name="app.main.open_box", condition="request.isXmlHttpRequest()")
+     * @Route("/open", name="app.main.open_box", condition="request.isXmlHttpRequest()", options={"expose"=true})
      */
     public function openBox(Request $request)
     {
