@@ -16,6 +16,13 @@ class SchemeManager
     private $mines = [];
 
     /**
+     * Will keep the scheme (for boxes opening purpose)
+     *
+     * @var array
+     */
+    private $scheme;
+
+    /**
      * @param integer $rows
      * @param integer $columns
      * @param integer $minesNumber
@@ -64,7 +71,8 @@ class SchemeManager
         $value = $box->getValue();
 
         if ($value === 0) {
-            $this->recursiveOpen($rowIndex, $columnIndex, $scheme);
+            $this->scheme = $scheme;
+            $this->recursiveOpen($rowIndex, $columnIndex);
         } else {
             $box->open();
         }
@@ -76,18 +84,17 @@ class SchemeManager
     /**
      * @param integer $rowIndex
      * @param integer $columnIndex
-     * @param array $scheme
      *
      * @return bool
      */
-    protected function recursiveOpen($rowIndex, $columnIndex, array $scheme)
+    protected function recursiveOpen($rowIndex, $columnIndex)
     {
-        if (!isset($scheme[$rowIndex][$columnIndex])) {
+        if (!isset($this->scheme[$rowIndex][$columnIndex])) {
             return;
         }
 
         /** @var $box BoxInterface */
-        $box = $scheme[$rowIndex][$columnIndex];
+        $box = $this->scheme[$rowIndex][$columnIndex];
 
         if ($box->isMine()) {
             return;
@@ -103,14 +110,14 @@ class SchemeManager
             return;
         }
 
-        return $this->recursiveOpen($rowIndex-1, $columnIndex-1, $scheme) ||
-            $this->recursiveOpen($rowIndex-1, $columnIndex, $scheme) ||
-            $this->recursiveOpen($rowIndex-1, $columnIndex+1, $scheme) ||
-            $this->recursiveOpen($rowIndex, $columnIndex-1, $scheme) ||
-            $this->recursiveOpen($rowIndex, $columnIndex+1, $scheme) ||
-            $this->recursiveOpen($rowIndex+1, $columnIndex-1, $scheme) ||
-            $this->recursiveOpen($rowIndex+1, $columnIndex, $scheme) ||
-            $this->recursiveOpen($rowIndex+1, $columnIndex+1, $scheme);
+        return $this->recursiveOpen($rowIndex-1, $columnIndex-1) ||
+            $this->recursiveOpen($rowIndex-1, $columnIndex) ||
+            $this->recursiveOpen($rowIndex-1, $columnIndex+1) ||
+            $this->recursiveOpen($rowIndex, $columnIndex-1) ||
+            $this->recursiveOpen($rowIndex, $columnIndex+1) ||
+            $this->recursiveOpen($rowIndex+1, $columnIndex-1) ||
+            $this->recursiveOpen($rowIndex+1, $columnIndex) ||
+            $this->recursiveOpen($rowIndex+1, $columnIndex+1);
     }
 
     /**
