@@ -1,6 +1,45 @@
 $(document).ready(function() {
-    $('td.box').each(function () {
-        $(this).click(function () {
+    $('button#mine-placeholder').click(function() {
+        if ($(this).val() == 0) {
+            $(this).val(1);
+            $(this).removeClass('select-mine-placeholder').addClass('remove-mine-placeholder');
+            $(this).text('Unselect mine placeholder')
+        } else {
+            $(this).val(0);
+            $(this).removeClass('remove-mine-placeholder').addClass('select-mine-placeholder');
+            $(this).text('Select mine placeholder')
+        }
+    });
+
+    $('td.box').each(function() {
+        $(this).click(function(event) {
+
+            var minePlaceholderVal = $('button#mine-placeholder').val();
+
+            if ($(this).hasClass('preventClick')) {
+                return;
+            }
+
+            if ($(this).hasClass('open')) {
+                return;
+            }
+
+            if ($(this).hasClass('mine-placeholder')) {
+                if (minePlaceholderVal == 1) {
+                    $(this).removeClass('mine-placeholder');
+                    return;
+                }
+            }
+
+            if (minePlaceholderVal == 1) {
+                $(this).addClass('mine-placeholder');
+                return;
+            }
+
+            $('td').each(function() {
+                $(this).addClass('preventClick');
+            });
+
             var rowColumnsIndexesArray = $(this).attr('id').split('-');
             var rowIndex = rowColumnsIndexesArray[0];
             var columnIndex = rowColumnsIndexesArray[1];
@@ -50,6 +89,10 @@ $(document).ready(function() {
                                     $(box).html(value);
                                 }
                             });
+                        });
+
+                        $('td').each(function() {
+                            $(this).removeClass('preventClick');
                         });
                     }
                 }
